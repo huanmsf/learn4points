@@ -1,0 +1,68 @@
+# Flutter/Dart相关
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+flutter_*.png
+ios/.generated/
+ios/Flutter/Generated.xcconfig
+ios/Runner/GeneratedPluginRegistrant.*
+
+# Android相关
+android/app/debug
+android/app/profile
+android/app/release
+android/.gradle/
+android/captures/
+android/gradlew
+android/gradlew.bat
+android/local.properties
+android/**/GeneratedPluginRegistrant.java
+
+# iOS相关
+ios/Runner.xcworkspace/
+ios/Flutter/flutter_export_environment.sh
+ios/ServiceDefinitions.json
+ios/Runner/GeneratedPluginRegistrant.*
+
+# Web相关
+web/
+
+# 桌面相关
+windows/
+macos/
+linux/
+
+# IDE相关
+.vscode/
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# 其他
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+*.bak
+*.swp
+*~
+
+# Hive相关
+*.hive
+*.lock
+
+# 生成的代码
+*.g.dart
+*.freezed.dart
+*.config.dart
+
+# 环境配置
+.env
+.env.local
+.env.development
+.env.production 

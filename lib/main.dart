@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -15,8 +16,21 @@ import 'utils/app_theme.dart';
 import 'utils/config.dart';
 import 'widgets/web_notification_overlay.dart';
 
+// 桌面平台服务导入（条件导入）
+// 只有在非web环境且是桌面平台时才导入桌面服务
+import 'services/desktop_services_stub.dart'
+  if (dart.library.io) 'services/desktop_services_real.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // 打印平台信息
+  _printPlatformInfo();
+  
+  // 桌面平台特殊初始化
+  if (!kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
+    await _initializeDesktopPlatform();
+  }
   
   // 初始化Hive数据库
   await Hive.initFlutter();
@@ -36,17 +50,52 @@ void main() async {
   // 打印配置信息
   AppConfig.printConfig();
   
-  // 设置系统UI样式
-  SystemChrome.setSystemUIOverlayStyle(
-    const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.dark,
-      systemNavigationBarColor: Colors.white,
-      systemNavigationBarIconBrightness: Brightness.dark,
-    ),
-  );
+  // 设置系统UI样式（仅移动端）
+  if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark,
+        systemNavigationBarColor: Colors.white,
+        systemNavigationBarIconBrightness: Brightness.dark,
+      ),
+    );
+  }
   
   runApp(const SmartQuizHelperApp());
+}
+
+/// 打印平台信息
+void _printPlatformInfo() {
+  if (kIsWeb) {
+    print('🌐 平台: Web浏览器');
+  } else if (Platform.isWindows) {
+    print('🖥️ 平台: Windows桌面');
+  } else if (Platform.isMacOS) {
+    print('🍎 平台: macOS桌面');
+  } else if (Platform.isLinux) {
+    print('🐧 平台: Linux桌面');
+  } else if (Platform.isAndroid) {
+    print('📱 平台: Android');
+  } else if (Platform.isIOS) {
+    print('📱 平台: iOS');
+  } else {
+    print('❓ 平台: 未知');
+  }
+}
+
+/// 初始化桌面平台服务
+Future<void> _initializeDesktopPlatform() async {
+  try {
+    print('🛠️ 初始化桌面平台服务...');
+    
+    // 使用条件导入的桌面服务
+    await DesktopServices.initialize();
+    
+    print('🎉 桌面平台服务初始化完成');
+  } catch (e) {
+    print('❌ 桌面平台服务初始化失败: $e');
+  }
 }
 
 class SmartQuizHelperApp extends StatelessWidget {
@@ -105,18 +154,47 @@ class _AppWrapperState extends State<AppWrapper> {
   @override
   void initState() {
     super.initState();
-    // 延迟初始化Web通知管理器
-    if (kIsWeb) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        final overlay = Overlay.of(context);
-        if (overlay != null) {
-          WebNotificationManager.initialize(overlay);
-          print('✅ WebNotificationManager 初始化成功');
-        } else {
-          print('❌ 无法获取Overlay实例');
-        }
-      });
+    _initializePlatformSpecificServices();
+  }
+
+  /// 初始化平台特有的服务
+  void _initializePlatformSpecificServices() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (kIsWeb) {
+        // Web平台初始化
+        _initializeWebServices();
+      } else if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
+        // 桌面平台初始化
+        _initializeDesktopServices();
+      } else {
+        // 移动端平台初始化
+        _initializeMobileServices();
+      }
+    });
+  }
+
+  /// 初始化Web服务
+  void _initializeWebServices() {
+    final overlay = Overlay.of(context);
+    if (overlay != null) {
+      WebNotificationManager.initialize(overlay);
+      print('✅ WebNotificationManager 初始化成功');
+    } else {
+      print('❌ 无法获取Overlay实例');
     }
+  }
+
+  /// 初始化桌面服务
+  void _initializeDesktopServices() {
+    print('🖥️ 桌面平台UI初始化完成');
+    // 桌面平台的UI初始化已经在main函数中完成
+    // 这里可以添加额外的UI相关初始化
+  }
+
+  /// 初始化移动端服务
+  void _initializeMobileServices() {
+    print('📱 移动端平台UI初始化完成');
+    // 移动端特有的UI初始化
   }
 
   @override

@@ -115,19 +115,10 @@ class WebScreenshotService {
     try {
       print('🔍 开始OCR识别...');
       
-      // 显示进度通知
-      await _notificationHelper.showProgress(
-        title: '智能识别中',
-        content: '正在识别图片中的题目...',
-        progress: 1,
-        maxProgress: 3,
-      );
-
-      // OCR识别
+      // OCR识别 - 不显示进度通知
       final ocrResult = await _ocrService.recognizeTextFromBytes(imageBytes);
       
       if (ocrResult.fullText.isEmpty) {
-        await _notificationHelper.cancelProgress();
         await _notificationHelper.showError('未识别到文字内容，请确保图片清晰');
         return;
       }
@@ -137,48 +128,24 @@ class WebScreenshotService {
           : ocrResult.fullText;
       print('✅ OCR识别完成: $previewText');
 
-      // 更新进度
-      await _notificationHelper.showProgress(
-        title: '智能识别中',
-        content: '正在解析题目类型...',
-        progress: 2,
-        maxProgress: 3,
-      );
-
-      // 解析题目
+      // 解析题目 - 不显示进度通知
       final parsedQuestion = await _ocrService.parseQuestion(ocrResult);
       
       if (parsedQuestion == null) {
-        await _notificationHelper.cancelProgress();
         await _notificationHelper.showError('无法解析题目，请检查图片内容');
         return;
       }
 
       print('✅ 题目解析完成: ${parsedQuestion.type.toString()}');
 
-      // 显示题目识别结果
-      await _notificationHelper.showQuestionDetected(
-        _getQuestionTypeText(parsedQuestion.type),
-        parsedQuestion.content,
-      );
-
-      // 更新进度
-      await _notificationHelper.showProgress(
-        title: '查找答案中',
-        content: '正在搜索答案...',
-        progress: 3,
-        maxProgress: 3,
-      );
-
-      // 查找答案
+      // 不显示题目识别通知，直接查找答案
       final answerResult = await _answerService.queryAnswer(
         parsedQuestion.content,
         parsedQuestion.options,
         parsedQuestion.type,
       );
 
-      await _notificationHelper.cancelProgress();
-
+      // 只在找到答案时显示通知
       if (answerResult.hasAnswers) {
         print('✅ 找到答案: ${answerResult.formattedAnswers}');
         
@@ -188,7 +155,7 @@ class WebScreenshotService {
           answerResult,
         );
         
-        // 显示答案通知
+        // 显示最终答案通知
         await _notificationHelper.showAnswer(
           title: '🎯 找到答案！',
           content: answerContent,
@@ -205,7 +172,6 @@ class WebScreenshotService {
 
     } catch (e) {
       print('❌ 处理图片失败: $e');
-      await _notificationHelper.cancelProgress();
       await _notificationHelper.showError('处理失败: $e');
     }
   }

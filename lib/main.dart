@@ -77,18 +77,7 @@ class SmartQuizHelperApp extends StatelessWidget {
             theme: AppTheme.lightTheme,
             darkTheme: AppTheme.darkTheme,
             themeMode: ThemeMode.system,
-            home: const HomeScreen(),
-            builder: (context, child) {
-              // 初始化Web通知管理器
-              if (kIsWeb) {
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (Overlay.of(context) != null) {
-                    WebNotificationManager.initialize(Overlay.of(context)!);
-                  }
-                });
-              }
-              return child ?? Container();
-            },
+            home: const AppWrapper(),
             // 路由配置
             routes: {
               '/home': (context) => const HomeScreen(),
@@ -101,6 +90,38 @@ class SmartQuizHelperApp extends StatelessWidget {
         );
       },
     );
+  }
+}
+
+/// 应用包装器，用于初始化Web通知管理器
+class AppWrapper extends StatefulWidget {
+  const AppWrapper({Key? key}) : super(key: key);
+
+  @override
+  State<AppWrapper> createState() => _AppWrapperState();
+}
+
+class _AppWrapperState extends State<AppWrapper> {
+  @override
+  void initState() {
+    super.initState();
+    // 延迟初始化Web通知管理器
+    if (kIsWeb) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final overlay = Overlay.of(context);
+        if (overlay != null) {
+          WebNotificationManager.initialize(overlay);
+          print('✅ WebNotificationManager 初始化成功');
+        } else {
+          print('❌ 无法获取Overlay实例');
+        }
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return const HomeScreen();
   }
 }
 

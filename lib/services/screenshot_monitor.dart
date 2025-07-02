@@ -70,6 +70,13 @@ class ScreenshotMonitor {
       return true;
     }
 
+    // 桌面平台暂时不支持自动截图监听
+    if (!kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
+      print('桌面平台暂时不支持自动截图监听，请使用热键截图功能');
+      _updateStatus(MonitorStatus.stopped);
+      return false;
+    }
+
     try {
       _updateStatus(MonitorStatus.starting);
       
@@ -83,7 +90,7 @@ class ScreenshotMonitor {
       // 2. 初始化平台通道
       await _initializePlatformChannel();
       
-      // 3. 启动监听
+      // 3. 启动监听（仅移动平台）
       bool started = await _startPlatformMonitoring();
       if (!started) {
         _updateStatus(MonitorStatus.error);
@@ -139,25 +146,32 @@ class ScreenshotMonitor {
     
     try {
       // 检查存储权限
-      dynamic storageStatus = await Permission.storage.status;
-      if (!storageStatus.isGranted) {
+      PermissionStatus storageStatus = await Permission.storage.status;
+      if (storageStatus != PermissionStatus.granted) {
         storageStatus = await Permission.storage.request();
-        if (!storageStatus.isGranted) {
+        if (storageStatus != PermissionStatus.granted) {
+          print('存储权限被拒绝');
           return false;
         }
       }
 
       // 检查通知权限
-      dynamic notificationStatus = await Permission.notification.status;
-      if (!notificationStatus.isGranted) {
+      PermissionStatus notificationStatus = await Permission.notification.status;
+      if (notificationStatus != PermissionStatus.granted) {
         notificationStatus = await Permission.notification.request();
+        if (notificationStatus != PermissionStatus.granted) {
+          print('通知权限被拒绝，但继续运行');
+        }
       }
 
       // 检查悬浮窗权限（移动平台）
       try {
-        dynamic systemAlertStatus = await Permission.systemAlertWindow.status;
-        if (!systemAlertStatus.isGranted) {
+        PermissionStatus systemAlertStatus = await Permission.systemAlertWindow.status;
+        if (systemAlertStatus != PermissionStatus.granted) {
           systemAlertStatus = await Permission.systemAlertWindow.request();
+          if (systemAlertStatus != PermissionStatus.granted) {
+            print('悬浮窗权限被拒绝，但继续运行');
+          }
         }
       } catch (e) {
         print('悬浮窗权限检查失败: $e');

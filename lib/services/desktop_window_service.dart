@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart';
-import 'package:system_tray/system_tray.dart';
+// import 'package:system_tray/system_tray.dart'; // 暂时注释
 import '../utils/logger.dart';
 
 /// 桌面平台窗口管理服务
@@ -10,7 +10,7 @@ class DesktopWindowService with WindowListener {
   factory DesktopWindowService() => _instance;
   DesktopWindowService._internal();
 
-  final SystemTray _systemTray = SystemTray();
+  // final SystemTray _systemTray = SystemTray(); // 暂时注释
   bool _isInitialized = false;
   bool _isMinimizedToTray = false;
 
@@ -59,6 +59,11 @@ class DesktopWindowService with WindowListener {
 
   /// 初始化系统托盘
   Future<void> _initializeSystemTray() async {
+    // 暂时禁用系统托盘功能
+    Logger.warning('系统托盘功能暂时不可用');
+    return;
+    
+    /* 原实现暂时注释
     try {
       // 简化的系统托盘初始化
       String iconPath = await _getTrayIconPath();
@@ -81,6 +86,7 @@ class DesktopWindowService with WindowListener {
       Logger.warning('系统托盘初始化失败，将跳过托盘功能: $e');
       // 托盘初始化失败不影响主要功能
     }
+    */
   }
 
   /// 获取托盘图标路径

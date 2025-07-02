@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
-import 'dart:html' as html;
 import '../services/screenshot_monitor.dart';
-import '../services/web_screenshot_service.dart';
 import '../services/database_service.dart';
 import '../widgets/monitor_status_card.dart';
 import '../widgets/statistics_card.dart';
@@ -24,7 +22,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   late ScreenshotMonitor _monitor;
   late DatabaseService _database;
-  late WebScreenshotService _webService;
+  dynamic _webService; // 使用dynamic避免编译时类型检查
   bool _isDragOver = false;
   
   @override
@@ -33,18 +31,22 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     _monitor = context.read<ScreenshotMonitor>();
     _database = context.read<DatabaseService>();
-    _webService = WebScreenshotService();
     
-    // 只在Web环境下设置拖拽监听
+    // 只在Web环境下创建WebScreenshotService（桌面版暂不支持）
     if (kIsWeb) {
+      // 注释掉Web服务，桌面版不需要
+      // _webService = WebScreenshotService();
+      _webService = null;
       _setupDragAndDrop();
+    } else {
+      _webService = null;
     }
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _webService.dispose();
+    _webService?.dispose();
     super.dispose();
   }
 
@@ -52,36 +54,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void _setupDragAndDrop() {
     if (!kIsWeb) return;
     
-    // 设置页面级拖拽事件监听
-    html.document.addEventListener('dragover', (event) {
-      event.preventDefault();
-      if (!_isDragOver) {
-        setState(() {
-          _isDragOver = true;
-        });
-      }
-    });
-    
-    html.document.addEventListener('dragleave', (event) {
-      if (_isDragOver) {
-        setState(() {
-          _isDragOver = false;
-        });
-      }
-    });
-    
-    html.document.addEventListener('drop', (event) {
-      event.preventDefault();
-      setState(() {
-        _isDragOver = false;
-      });
-      
-      final dragEvent = event as html.MouseEvent;
-      final files = (dragEvent as dynamic).dataTransfer?.files;
-      if (files != null && files.isNotEmpty) {
-        _webService.handleDroppedFiles(files);
-      }
-    });
+    // Web平台的拖拽功能将通过WebScreenshotService处理
+    // 这里只是一个占位方法，实际实现在WebScreenshotService中
+    print('📱 桌面环境: 拖拽功能不可用');
   }
 
   @override
@@ -325,7 +300,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               ElevatedButton.icon(
-                onPressed: _webService.isProcessing ? null : () => _webService.selectAndProcessImage(),
+                onPressed: (_webService?.isProcessing ?? false) ? null : () => _webService?.selectAndProcessImage(),
                 icon: Icon(Icons.file_upload),
                 label: Text('选择图片'),
                 style: ElevatedButton.styleFrom(
@@ -334,7 +309,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
                 ),
               ),
-              if (_webService.isProcessing)
+              if (_webService?.isProcessing ?? false)
                 Row(
                   children: [
                     SizedBox(
@@ -645,14 +620,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (kIsWeb) {
       // Web环境显示上传按钮
       return FloatingActionButton.extended(
-        onPressed: _webService.isProcessing ? null : () => _webService.selectAndProcessImage(),
-        backgroundColor: _webService.isProcessing ? Colors.grey : AppColors.primary,
+        onPressed: (_webService?.isProcessing ?? false) ? null : () => _webService?.selectAndProcessImage(),
+        backgroundColor: (_webService?.isProcessing ?? false) ? Colors.grey : AppColors.primary,
         icon: Icon(
-          _webService.isProcessing ? Icons.hourglass_empty : Icons.file_upload,
+          (_webService?.isProcessing ?? false) ? Icons.hourglass_empty : Icons.file_upload,
           color: Colors.white,
         ),
         label: Text(
-          _webService.isProcessing ? '处理中...' : '上传图片',
+          (_webService?.isProcessing ?? false) ? '处理中...' : '上传图片',
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,

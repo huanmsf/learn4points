@@ -2,8 +2,22 @@
 /// 提供与permission_handler包兼容的接口，用于Web平台编译
 
 class PermissionStatus {
+  static const PermissionStatus granted = PermissionStatus._(true);
+  static const PermissionStatus denied = PermissionStatus._(false);
+  static const PermissionStatus restricted = PermissionStatus._(false);
+  static const PermissionStatus limited = PermissionStatus._(false);
+  static const PermissionStatus permanentlyDenied = PermissionStatus._(false);
+  
   final bool isGranted;
-  PermissionStatus(this.isGranted);
+  const PermissionStatus._(this.isGranted);
+  
+  bool operator ==(Object other) {
+    return identical(this, other) || 
+           (other is PermissionStatus && other.isGranted == isGranted);
+  }
+  
+  @override
+  int get hashCode => isGranted.hashCode;
 }
 
 class Permission {
@@ -16,11 +30,11 @@ class Permission {
   
   Future<PermissionStatus> get status async {
     // Web平台默认授权
-    return PermissionStatus(true);
+    return PermissionStatus.granted;
   }
   
   Future<PermissionStatus> request() async {
     // Web平台默认授权
-    return PermissionStatus(true);
+    return PermissionStatus.granted;
   }
 } 

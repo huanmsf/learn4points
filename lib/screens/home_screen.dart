@@ -11,6 +11,7 @@ import '../screens/wrong_questions_screen.dart';
 import '../screens/question_bank_screen.dart';
 import '../screens/settings_screen.dart';
 import '../utils/app_colors.dart';
+import '../services/web_screenshot_service.dart' if (dart.library.io) '../services/web_screenshot_service_stub.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -22,7 +23,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   late ScreenshotMonitor _monitor;
   late DatabaseService _database;
-  dynamic _webService; // 使用dynamic避免编译时类型检查
+  WebScreenshotService? _webService; // Web截图服务
   bool _isDragOver = false;
   
   @override
@@ -32,11 +33,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     _monitor = context.read<ScreenshotMonitor>();
     _database = context.read<DatabaseService>();
     
-    // 只在Web环境下创建WebScreenshotService（桌面版暂不支持）
+    // 只在Web环境下创建WebScreenshotService
     if (kIsWeb) {
-      // 注释掉Web服务，桌面版不需要
-      // _webService = WebScreenshotService();
-      _webService = null;
+      _webService = WebScreenshotService();
+      _webService!.initialize();
       _setupDragAndDrop();
     } else {
       _webService = null;
@@ -46,17 +46,18 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _webService?.dispose();
+    if (_webService != null) {
+      _webService!.dispose();
+    }
     super.dispose();
   }
 
   /// 设置拖拽和放置功能（仅Web环境）
   void _setupDragAndDrop() {
-    if (!kIsWeb) return;
+    if (!kIsWeb || _webService == null) return;
     
-    // Web平台的拖拽功能将通过WebScreenshotService处理
-    // 这里只是一个占位方法，实际实现在WebScreenshotService中
-    print('📱 桌面环境: 拖拽功能不可用');
+    // Web平台的拖拽功能已在WebScreenshotService中处理
+    print('📱 Web环境: 拖拽功能已启用');
   }
 
   @override
@@ -296,11 +297,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             textAlign: TextAlign.center,
           ),
           SizedBox(height: 20.h),
-          Row(
+                      Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               ElevatedButton.icon(
-                onPressed: (_webService?.isProcessing ?? false) ? null : () => _webService?.selectAndProcessImage(),
+                onPressed: (_webService?.isProcessing == true) ? null : () => _webService?.selectAndProcessImage(),
                 icon: Icon(Icons.file_upload),
                 label: Text('选择图片'),
                 style: ElevatedButton.styleFrom(
@@ -309,7 +310,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
                 ),
               ),
-              if (_webService?.isProcessing ?? false)
+              if (_webService?.isProcessing == true)
                 Row(
                   children: [
                     SizedBox(
@@ -620,14 +621,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (kIsWeb) {
       // Web环境显示上传按钮
       return FloatingActionButton.extended(
-        onPressed: (_webService?.isProcessing ?? false) ? null : () => _webService?.selectAndProcessImage(),
-        backgroundColor: (_webService?.isProcessing ?? false) ? Colors.grey : AppColors.primary,
+        onPressed: (_webService?.isProcessing == true) ? null : () => _webService?.selectAndProcessImage(),
+        backgroundColor: (_webService?.isProcessing == true) ? Colors.grey : AppColors.primary,
         icon: Icon(
-          (_webService?.isProcessing ?? false) ? Icons.hourglass_empty : Icons.file_upload,
+          (_webService?.isProcessing == true) ? Icons.hourglass_empty : Icons.file_upload,
           color: Colors.white,
         ),
         label: Text(
-          (_webService?.isProcessing ?? false) ? '处理中...' : '上传图片',
+          (_webService?.isProcessing == true) ? '处理中...' : '上传图片',
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,

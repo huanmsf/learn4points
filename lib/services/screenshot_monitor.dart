@@ -9,11 +9,8 @@ import '../widgets/answer_overlay.dart';
 import '../models/question.dart';
 import '../utils/notification_helper.dart';
 
-// 只在非Web平台导入
-import 'dart:io' if (dart.library.html) 'file_web_stub.dart';
-
-// Web平台和移动平台的权限处理
-import 'package:permission_handler/permission_handler.dart' if (dart.library.html) 'web_permission_stub.dart';
+// Web平台权限处理存根
+import 'web_permission_stub.dart';
 
 /// 截图监听状态
 enum MonitorStatus {
@@ -70,9 +67,9 @@ class ScreenshotMonitor {
       return true;
     }
 
-    // 桌面平台暂时不支持自动截图监听
-    if (!kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
-      print('桌面平台暂时不支持自动截图监听，请使用热键截图功能');
+    // Web平台专用版本
+    if (!kIsWeb) {
+      print('当前版本仅支持Web平台');
       _updateStatus(MonitorStatus.stopped);
       return false;
     }
@@ -270,89 +267,10 @@ class ScreenshotMonitor {
 
       print('🎯 检测到新截图: $imagePath');
 
-      // 1. 读取图片并进行OCR识别
-      Uint8List imageBytes;
-      if (kIsWeb) {
-        // Web平台：imagePath可能是base64或blob URL，需要特殊处理
-        try {
-          // 这里假设imagePath是一个可以转换为字节的图片数据
-          // 在实际Web环境中，可能需要从File对象或其他来源获取字节
-          print('⚠️ Web平台图片处理需要实现具体的字节转换逻辑');
-          await _notification.showError('Web平台OCR功能正在开发中');
-          return;
-        } catch (e) {
-          print('❌ Web平台图片读取失败: $e');
-          await _notification.showError('无法读取图片数据');
-          return;
-        }
-      } else {
-        // 移动平台：从文件路径读取字节
-        try {
-          final file = File(imagePath);
-          if (!await file.exists()) {
-            print('❌ 图片文件不存在: $imagePath');
-            await _notification.showError('图片文件不存在');
-            return;
-          }
-          imageBytes = await file.readAsBytes();
-        } catch (e) {
-          print('❌ 读取图片文件失败: $e');
-          await _notification.showError('无法读取图片文件');
-          return;
-        }
-      }
-      
-      final parsedQuestion = await _ocrService.recognizeAndParseQuestion(imageBytes);
-      if (parsedQuestion == null) {
-        print('❌ OCR识别失败');
-        await _notification.showError('无法识别题目内容');
-        return;
-      }
-
-      print('✅ 识别到题目: ${parsedQuestion.content}');
-
-      // 2. 查询答案
-      final answerResult = await _answerService.queryAnswer(
-        parsedQuestion.content,
-        parsedQuestion.options,
-        parsedQuestion.type,
-      );
-
-      if (!answerResult.hasAnswers) {
-        print('❌ 未找到答案');
-        await _notification.showError('未找到答案');
-        return;
-      }
-
-      _successfulAnswers++;
-      print('✅ 找到答案: ${answerResult.formattedAnswers} (来源: ${answerResult.source.name})');
-
-      // 3. 创建题目对象
-      final question = Question(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        number: parsedQuestion.number,
-        type: parsedQuestion.type,
-        content: parsedQuestion.content,
-        options: parsedQuestion.options,
-        correctAnswers: answerResult.answers,
-        createdAt: DateTime.now(),
-        usageCount: 1,
-        confidence: answerResult.confidence,
-        answerSource: answerResult.source,
-      );
-
-      // 4. 显示答案浮窗
-      await _showAnswerOverlay(question, answerResult);
-
-      // 5. 保存到题库（如果来源不是本地题库）
-      if (answerResult.source != AnswerSource.database) {
-        await _database.insertQuestion(question);
-      } else {
-        await _database.updateQuestionUsage(question.id);
-      }
-
-      // 6. 清理处理过的截图
-      await _cleanupScreenshot(imagePath);
+      // 当前Web版本暂不支持自动截图监控
+      print('⚠️ Web版本暂不支持自动截图监控功能');
+      await _notification.showError('Web版本暂不支持自动截图监控功能');
+      return;
 
     } catch (e) {
       print('处理截图失败: $e');
@@ -425,28 +343,8 @@ class ScreenshotMonitor {
 
   /// 清理截图文件
   Future<void> _cleanupScreenshot(String imagePath) async {
-    if (kIsWeb) {
-      // Web平台不需要清理本地文件
-      return;
-    }
-    
-    try {
-      // 延迟删除，确保处理完成
-      Timer(Duration(seconds: 30), () async {
-        try {
-          if (!kIsWeb) {
-            final file = File(imagePath);
-            if (await file.exists()) {
-              await file.delete();
-            }
-          }
-        } catch (e) {
-          // 静默处理删除错误
-        }
-      });
-    } catch (e) {
-      // 静默处理错误
-    }
+    // Web平台不需要清理本地文件
+    return;
   }
 
   /// 记录答题结果
